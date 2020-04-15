@@ -32,7 +32,8 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements
+        FetchAddressTask.OnTaskCompleted {
 
     private static final int REQUEST_LOCATION_PERMISSION = 1;
     private static final String TAG = "something";
@@ -40,6 +41,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView mLocationTextView;
 
     private FusedLocationProviderClient mFusedLocationClient;
+
+    @Override
+    public void onTaskCompleted(String result) {
+        // Update the UI
+        mLocationTextView.setText(getString(R.string.address_text,
+                result, System.currentTimeMillis()));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,12 +81,9 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onSuccess(Location location) {
                             if (location != null) {
-                                mLastLocation = location;
-                                mLocationTextView.setText(
-                                        getString(R.string.location_text,
-                                                mLastLocation.getLatitude(),
-                                                mLastLocation.getLongitude(),
-                                                mLastLocation.getTime()));
+                                // Start the reverse geocode AsyncTask
+                                new FetchAddressTask(MainActivity.this,
+                                        MainActivity.this).execute(location);
                             } else {
                                 mLocationTextView.setText(R.string.no_location);
                             }
@@ -86,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
                     });
 
         }
+        mLocationTextView.setText(getString(R.string.address_text,
+                getString(R.string.loading),
+                System.currentTimeMillis()));
     }
 
     @Override
