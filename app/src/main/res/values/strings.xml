@@ -21,4 +21,8 @@
         location
     </string>
     <string name="location_permission_denied">Permission to access location is denied</string>
+
+    <string name="location_text">"Latitude: %1$.4f \n Longitude: %2$.4f
+\n Timestamp: %3$tr"</string>
+    <string name="no_location">Sorry \n The location is not available at this time</string>
 </resources>
