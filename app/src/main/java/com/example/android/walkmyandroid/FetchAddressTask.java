@@ -13,29 +13,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * AsyncTask for reverse geocoding coordinates into a physical address.
+ */
 class FetchAddressTask extends AsyncTask<Location, Void, String> {
-    private final String TAG = FetchAddressTask.class.getSimpleName();
-    private Context mContext;
 
+    private Context mContext;
     private OnTaskCompleted mListener;
+
 
     FetchAddressTask(Context applicationContext, OnTaskCompleted listener) {
         mContext = applicationContext;
         mListener = listener;
     }
 
-
-    interface OnTaskCompleted {
-        void onTaskCompleted(String result);
-    }
+    private final String TAG = FetchAddressTask.class.getSimpleName();
 
     @Override
     protected String doInBackground(Location... params) {
+        // Set up the geocoder
         Geocoder geocoder = new Geocoder(mContext,
                 Locale.getDefault());
 
+        // Get the passed in location
         Location location = params[0];
-
         List<Address> addresses = null;
         String resultMessage = "";
 
@@ -45,47 +46,58 @@ class FetchAddressTask extends AsyncTask<Location, Void, String> {
                     location.getLongitude(),
                     // In this sample, get just a single address
                     1);
-
-            if (addresses == null || addresses.size() == 0) {
-                if (resultMessage.isEmpty()) {
-                    resultMessage = mContext
-                            .getString(R.string.no_address_found);
-                    Log.e(TAG, resultMessage);
-                }
-                else {
-                    // If an address is found, read it into resultMessage
-                    Address address = addresses.get(0);
-                    ArrayList<String> addressParts = new ArrayList<>();
-
-                    // Fetch the address lines using getAddressLine,
-                    // join them, and send them to the thread
-                    for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
-                        addressParts.add(address.getAddressLine(i));
-                    }
-
-                    resultMessage = TextUtils.join("\n", addressParts);
-                }
-            }
-        } catch (IOException e) {
-            resultMessage = mContext
-                    .getString(R.string.service_not_available);
-            Log.e(TAG, resultMessage, e);
-        }
-        catch (IllegalArgumentException illegalArgumentException) {
+        } catch (IOException ioException) {
+            // Catch network or other I/O problems
+            resultMessage = mContext.getString(R.string.service_not_available);
+            Log.e(TAG, resultMessage, ioException);
+        } catch (IllegalArgumentException illegalArgumentException) {
             // Catch invalid latitude or longitude values
-            resultMessage = mContext
-                    .getString(R.string.invalid_lat_long_used);
+            resultMessage = mContext.getString(R.string.invalid_lat_long_used);
             Log.e(TAG, resultMessage + ". " +
                     "Latitude = " + location.getLatitude() +
                     ", Longitude = " +
                     location.getLongitude(), illegalArgumentException);
         }
 
+        // If no addresses found, print an error message.
+        if (addresses == null || addresses.size() == 0) {
+            if (resultMessage.isEmpty()) {
+                resultMessage = mContext.getString(R.string.no_address_found);
+                Log.e(TAG, resultMessage);
+            }
+        } else {
+            // If an address is found, read it into resultMessage
+            Address address = addresses.get(0);
+            ArrayList<String> addressParts = new ArrayList<>();
+
+            // Fetch the address lines using getAddressLine,
+            // join them, and send them to the thread
+            for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
+                addressParts.add(address.getAddressLine(i));
+            }
+
+            resultMessage = TextUtils.join(
+                    "\n",
+                    addressParts);
+
+        }
+
         return resultMessage;
     }
+
+    /**
+     * Called once the background thread is finished and updates the
+     * UI with the result.
+     * @param address The resulting reverse geocoded address, or error
+     *                message if the task failed.
+     */
     @Override
     protected void onPostExecute(String address) {
         mListener.onTaskCompleted(address);
         super.onPostExecute(address);
+    }
+
+    interface OnTaskCompleted {
+        void onTaskCompleted(String result);
     }
 }
